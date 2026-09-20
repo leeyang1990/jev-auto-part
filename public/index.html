@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Jev 与通用 LLM 的实时停车决策对比实验。" data-i18n-content="meta.description">
+  <title>Parking Lab · Jev vs LLM</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='15' fill='%23a7f542'/%3E%3Cpath d='M20 48V16h14c9 0 14 5 14 13S43 42 34 42h-6v6zm8-14h6c4 0 6-2 6-5s-2-5-6-5h-6z' fill='%230b1110'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/" aria-label="自动泊车实验室首页" data-i18n-aria="brand.home">
+      <span class="brand-mark" aria-hidden="true"><span>AP</span></span>
+      <span class="brand-name"><strong>AUTO PARK</strong><small>INTELLIGENT MOBILITY</small></span>
+      <span class="separator"></span>
+      <span class="experiment">LAB 001</span>
+    </a>
+    <div class="topbar-actions">
+      <div class="live-label"><span></span><b data-i18n="top.live">实时模型对比</b></div>
+      <div class="language-switch" role="group" aria-label="语言 / Language">
+        <button type="button" data-language="zh" aria-pressed="true">中文</button>
+        <button type="button" data-language="en" aria-pressed="false">EN</button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="intro">
+      <div>
+        <p class="eyebrow" data-i18n="hero.eyebrow">同一车场 · 同一辆车 · 两种决策方式</p>
+        <h1 data-i18n-html="hero.title">谁能停得 <em>更好？</em></h1>
+        <p class="lede" data-i18n="hero.lede">Jev 与通用 LLM 同场接管车辆，每一步都来自模型的实时决策。</p>
+        <p id="scenario-description" class="scenario-description"></p>
+      </div>
+      <div class="controls">
+        <label class="select-wrap">
+          <span class="sr-only" data-i18n="controls.scene">选择停车场景</span>
+          <select id="scenario-select">
+            <option value="offset-bay"></option><option value="tight-corner"></option><option value="reverse-entry"></option><option value="left-offset"></option><option value="forward-entry"></option><option value="wide-angle"></option><option value="custom"></option>
+          </select>
+        </label>
+        <span id="custom-editor-hint" class="custom-editor-hint" hidden><span data-i18n="controls.editor">拖动车身移动 · 拖动蓝色方向手柄旋转</span><b id="custom-pose"></b></span>
+        <button id="reset-button" class="icon-button" type="button" aria-label="重置实验" title="重置实验" data-i18n-aria="controls.reset" data-i18n-title="controls.reset">↻</button>
+        <button id="run-button" class="run-button" type="button"><span class="run-icon">▶</span><span class="run-text">同时启动</span></button>
+      </div>
+    </section>
+
+    <section class="comparison" aria-label="Jev 与 LLM 停车决策对比" data-i18n-aria="comparison.label">
+      <article class="model-card jev-card" data-engine="jev">
+        <header class="model-header">
+          <div class="model-title"><span class="model-glyph jev-glyph">✣</span><div><h2>Jev</h2><p id="jev-model">jev-latest</p></div></div>
+          <div class="model-controls"><button id="jev-run-button" class="engine-run-button" type="button">▶ 运行 Jev</button><span id="jev-status" class="status ready"><i></i> 就绪</span></div>
+        </header>
+        <div class="scene-meta"><span class="scenario-name"></span><span><b class="to-target" data-i18n="scene.toTarget">距目标</b><strong id="jev-distance">2.73<small>m</small></strong></span></div>
+        <div class="lot-stage" role="img" aria-label="Jev 三维停车仿真" data-engine-aria="Jev">
+          <canvas id="jev-scene" class="lot-canvas"></canvas>
+          <svg class="lot-svg" viewBox="0 0 600 360" role="img" aria-label="Jev parking simulation">
+            <defs>
+              <linearGradient id="jev-asphalt" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#384242"/><stop offset="1" stop-color="#252d2e"/></linearGradient>
+              <filter id="jev-shadow"><feDropShadow dx="0" dy="7" stdDeviation="5" flood-opacity=".45"/></filter>
+            </defs>
+            <g class="lot-art">
+              <path class="lot-shadow" d="M65 245 302 75 544 201 309 340Z"/>
+              <path class="lot-surface" fill="url(#jev-asphalt)" d="M55 231 298 58 552 189 306 330Z"/>
+              <path class="lot-curb" d="M55 231 306 330 552 189M55 231 298 58 552 189"/>
+              <g class="parking-lines">
+                <path d="M231 145 352 209M267 121 388 185M303 96 424 160"/>
+                <path class="target-bay" d="M207 161 328 225 388 185 267 121Z"/>
+                <path d="M422 161 542 221M455 142 550 190"/>
+              </g>
+              <g class="parked-car car-tan" transform="translate(408 173) rotate(27)"><rect x="-25" y="-12" width="50" height="24" rx="5"/><rect class="window" x="-10" y="-9" width="21" height="18" rx="3"/></g>
+              <g class="parked-car car-blue" transform="translate(470 207) rotate(27)"><rect x="-25" y="-12" width="50" height="24" rx="5"/><rect class="window" x="-10" y="-9" width="21" height="18" rx="3"/></g>
+              <g class="lamp"><path d="M198 129v-58"/><path d="m190 68 17 5"/></g>
+              <g class="lamp"><path d="M505 178v-45"/><path d="m497 130 17 5"/></g>
+              <g id="jev-car" class="active-car jev-car" filter="url(#jev-shadow)"><rect x="-27" y="-13" width="54" height="26" rx="6"/><path class="car-glass" d="M-10-10H9l8 8v4L9 10h-19l-8-8v-4Z"/><path class="car-shine" d="M-21-8H15"/></g>
+              <circle class="target-dot" cx="298" cy="173" r="5"/>
+            </g>
+          </svg>
+          <div id="jev-parked" class="parked-badge" data-i18n="scene.parked">✓ 已停好</div>
+          <div class="decision-strip"><span id="jev-action">等待第一次决策</span><span id="jev-confidence-label">—</span></div>
+        </div>
+        <div class="stats">
+          <div><span>ELAPSED</span><strong id="jev-elapsed">0.0<small>s</small></strong></div>
+          <div><span>AVG. DECISION</span><strong id="jev-average">—</strong></div>
+          <div><span>DECISIONS</span><strong id="jev-moves">0</strong></div>
+          <div><span>PATH</span><strong id="jev-path">0.00<small>m</small></strong></div>
+          <div><span>GEAR SHIFTS</span><strong id="jev-shifts">0</strong></div>
+          <div><span>STEER CHANGE</span><strong id="jev-steering">0<small>°</small></strong></div>
+          <div><span>MIN CLEARANCE</span><strong id="jev-clearance">—</strong></div>
+          <div><span>BLOCKED</span><strong id="jev-dangerous">0</strong></div>
+          <div><span>OSCILLATIONS</span><strong id="jev-oscillations">0</strong></div><div><span>RECOVERIES</span><strong id="jev-recoveries">0</strong></div><div><span>DETECTED</span><strong id="jev-detected">0</strong></div><div><span>MAPPED CELLS</span><strong id="jev-mapped">0</strong></div><div><span>OPTIONS DRAWN</span><strong id="jev-options">0</strong></div>
+        </div>
+        <footer class="card-footer"><span id="jev-alignment">Alignment —</span><span id="jev-last">Last decision —</span></footer>
+      </article>
+
+      <div class="versus">VS</div>
+
+      <article class="model-card llm-card" data-engine="llm">
+        <header class="model-header">
+          <div class="model-title"><span class="model-glyph llm-glyph">✺</span><div><h2>LLM</h2><p id="llm-model">gpt-5.6-sol</p></div></div>
+          <div class="model-controls"><button id="llm-run-button" class="engine-run-button" type="button">▶ 运行 LLM</button><span id="llm-status" class="status ready"><i></i> 就绪</span></div>
+        </header>
+        <div class="scene-meta"><span class="scenario-name"></span><span><b class="to-target" data-i18n="scene.toTarget">距目标</b><strong id="llm-distance">2.73<small>m</small></strong></span></div>
+        <div class="lot-stage" role="img" aria-label="LLM 三维停车仿真" data-engine-aria="LLM">
+          <canvas id="llm-scene" class="lot-canvas"></canvas>
+          <svg class="lot-svg" viewBox="0 0 600 360" role="img" aria-label="LLM parking simulation">
+            <defs>
+              <linearGradient id="llm-asphalt" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#384242"/><stop offset="1" stop-color="#252d2e"/></linearGradient>
+              <filter id="llm-shadow"><feDropShadow dx="0" dy="7" stdDeviation="5" flood-opacity=".45"/></filter>
+            </defs>
+            <g class="lot-art">
+              <path class="lot-shadow" d="M65 245 302 75 544 201 309 340Z"/>
+              <path class="lot-surface" fill="url(#llm-asphalt)" d="M55 231 298 58 552 189 306 330Z"/>
+              <path class="lot-curb" d="M55 231 306 330 552 189M55 231 298 58 552 189"/>
+              <g class="parking-lines">
+                <path d="M231 145 352 209M267 121 388 185M303 96 424 160"/>
+                <path class="target-bay" d="M207 161 328 225 388 185 267 121Z"/>
+                <path d="M422 161 542 221M455 142 550 190"/>
+              </g>
+              <g class="parked-car car-tan" transform="translate(408 173) rotate(27)"><rect x="-25" y="-12" width="50" height="24" rx="5"/><rect class="window" x="-10" y="-9" width="21" height="18" rx="3"/></g>
+              <g class="parked-car car-blue" transform="translate(470 207) rotate(27)"><rect x="-25" y="-12" width="50" height="24" rx="5"/><rect class="window" x="-10" y="-9" width="21" height="18" rx="3"/></g>
+              <g class="lamp"><path d="M198 129v-58"/><path d="m190 68 17 5"/></g>
+              <g class="lamp"><path d="M505 178v-45"/><path d="m497 130 17 5"/></g>
+              <g id="llm-car" class="active-car llm-car" filter="url(#llm-shadow)"><rect x="-27" y="-13" width="54" height="26" rx="6"/><path class="car-glass" d="M-10-10H9l8 8v4L9 10h-19l-8-8v-4Z"/><path class="car-shine" d="M-21-8H15"/></g>
+              <circle class="target-dot" cx="298" cy="173" r="5"/>
+            </g>
+          </svg>
+          <div id="llm-parked" class="parked-badge" data-i18n="scene.parked">✓ 已停好</div>
+          <div class="decision-strip"><span id="llm-action">等待第一次决策</span><span id="llm-confidence-label">—</span></div>
+        </div>
+        <div class="stats">
+          <div><span>ELAPSED</span><strong id="llm-elapsed">0.0<small>s</small></strong></div>
+          <div><span>AVG. DECISION</span><strong id="llm-average">—</strong></div>
+          <div><span>DECISIONS</span><strong id="llm-moves">0</strong></div>
+          <div><span>PATH</span><strong id="llm-path">0.00<small>m</small></strong></div>
+          <div><span>GEAR SHIFTS</span><strong id="llm-shifts">0</strong></div>
+          <div><span>STEER CHANGE</span><strong id="llm-steering">0<small>°</small></strong></div>
+          <div><span>MIN CLEARANCE</span><strong id="llm-clearance">—</strong></div>
+          <div><span>BLOCKED</span><strong id="llm-dangerous">0</strong></div>
+          <div><span>OSCILLATIONS</span><strong id="llm-oscillations">0</strong></div><div><span>RECOVERIES</span><strong id="llm-recoveries">0</strong></div><div><span>DETECTED</span><strong id="llm-detected">0</strong></div><div><span>MAPPED CELLS</span><strong id="llm-mapped">0</strong></div><div><span>OPTIONS DRAWN</span><strong id="llm-options">0</strong></div>
+        </div>
+        <footer class="card-footer"><span id="llm-alignment">Alignment —</span><span id="llm-last">Last decision —</span></footer>
+      </article>
+    </section>
+
+    <section class="decision-console">
+      <section class="perception-legend">
+  <strong data-i18n="legend.title">轨迹图例</strong>
+  <span><i style="background:#4fc3f7"></i><b data-i18n="legend.forward">蓝色：前进候选轨迹</b></span>
+  <span><i style="background:#b388ff"></i><b data-i18n="legend.reverse">紫色：倒车候选轨迹</b></span>
+  <span><i style="background:#ffb300"></i><b data-i18n="legend.collision">琥珀色：感知地图预测会碰撞，候选被否决</b></span>
+  <span><i style="background:#ff6f3c"></i><b data-i18n="legend.rejected">橙色：模型已请求，但安全检查拒绝执行</b></span>
+  <span><i style="background:#168cff"></i><b data-i18n="legend.selected">亮蓝色细线：模型选中且安全检查允许执行</b></span>
+</section>
+      <div class="console-heading"><div><span class="console-dot"></span><h2 data-i18n="trace.title">决策记录</h2></div><p data-i18n="trace.subtitle">模型请求 → 安全检查 → 实际执行指令</p></div>
+      <div class="trace-grid"><ol id="jev-trace" aria-label="Jev 决策记录" data-engine-trace="Jev"></ol><ol id="llm-trace" aria-label="LLM 决策记录" data-engine-trace="LLM"></ol></div>
+    </section>
+  </main>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script type="module" src="/app.js"></script>
+</body>
+</html>

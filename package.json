@@ -1,0 +1,17 @@
+{
+  "name": "parking-model-lab",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "check": "for file in server.js models.js briefing.js perception.js scenarios.js parking-decision.js parking/*.js public/*.js scripts/*.mjs; do node --check \"$file\" || exit 1; done",
+    "test:e2e": "node scripts/compare-engines.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "three": "^0.180.0"
+  }
+}
