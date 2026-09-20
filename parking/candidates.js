@@ -1,4 +1,4 @@
-import { PARK_TOLERANCE, TRAJECTORY } from "./config.js";
+import { parkingAssessment } from "../public/parking-goal.js";
 import { createControlCandidates } from "./controller.js";
 import { groundTruthWorld } from "./kinematics.js";
 import { navigationMeasurement } from "./navigation.js";
@@ -16,11 +16,7 @@ export function createCandidates(pose, target, world = null, navigation = null, 
     addNavigationMeasurements(candidate, pose, navigation);
     if (candidate.action === "stop") continue;
     candidate.parkedAfter = isParked(candidate.pose, target);
-    candidate.parkingToleranceRatio = Math.max(
-      candidate.distance / PARK_TOLERANCE.distanceM,
-      candidate.angleError / PARK_TOLERANCE.headingDeg,
-      Math.abs(candidate.targetLateralError) / TRAJECTORY.terminalLateralToleranceM,
-    );
+    candidate.parkingToleranceRatio = parkingAssessment(candidate.pose, target).toleranceRatio;
     candidate.plan = planString(candidate.segmentsDetail);
   }
   return candidates;

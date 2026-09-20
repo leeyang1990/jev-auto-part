@@ -1,4 +1,4 @@
-export const VEHICLE = { wheelbase: 1.05, length: 1.75, width: 0.82, maxSteerDeg: 32 };
+export { VEHICLE } from "../public/parking-goal.js";
 
 export const OBSTACLES = [
   { id: "parked_car_left", type: "parked_vehicle", x: -2.05, y: -2.45, heading: 90, length: 1.75, width: 0.82 },
@@ -19,7 +19,6 @@ export const CONTROL_HORIZON_S = 1.0;
 export const FINE_CONTROL_HORIZON_S = 0.6;
 export const MICRO_CONTROL_HORIZON_S = 0.3;
 export const RECOVERY_CONTROL_HORIZON_S = 0.9;
-export const PARK_TOLERANCE = { distanceM: 0.28, headingDeg: 7 };
 // Shared trajectory generation. Both engines receive the same bounded set of
 // multi-segment trajectories. These values control search breadth only; they
 // never select a trajectory for either model.
@@ -31,9 +30,5 @@ export const TRAJECTORY = {
   recoveryMinDistanceM: 0.42,
   recoveryMaxDistanceM: 1.35,
   recoveryMinHeadingChangeDeg: 10,
-  // A one-shot parking result can be numerically inside a radial tolerance but
-  // visibly off-centre sideways. Keep the published completion tolerance while
-  // exposing longitudinal and lateral pose error to both model interfaces.
-  terminalLateralToleranceM: 0.2,
 };
 export const CANDIDATE_COUNT = TRAJECTORY.candidateLimit + 1;

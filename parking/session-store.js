@@ -1,3 +1,4 @@
+import { parkingAssessment } from "../public/parking-goal.js";
 import { createCandidates } from "./candidates.js";
 import { distance } from "./math.js";
 import { navigationState } from "./navigation.js";
@@ -21,7 +22,7 @@ export class ParkingSessionStore {
     const navigation = navigationState(scenario, pose, target, session.navigationStage);
     session.navigationStage = navigation.stageIndex;
     const stageHistory = history.filter((item) => item.navigationStage === navigation.stageId);
-    const analysis = analyzeHistory(stageHistory, navigation.finalStage);
+    const analysis = analyzeHistory(stageHistory, navigation.finalStage, target);
     const recovery = updateRecoveryEpisode(session, analysis, pose, navigation);
     const candidates = createCandidates(pose, target, perceivedWorld(session.state), navigation, recovery);
     annotateCandidates(session.state, candidates);
@@ -41,7 +42,7 @@ export class ParkingSessionStore {
 
 function updateRecoveryEpisode(session, analysis, pose, navigation) {
   const objective = navigation.finalStage
-    ? Math.max(navigation.remainingM / 0.28, navigation.headingErrorDeg / 7)
+    ? parkingAssessment(pose, navigation.goal).toleranceRatio
     : navigation.remainingM;
   let episode = session.recoveryEpisode;
   if (episode && episode.stageId !== navigation.stageId) episode = null;

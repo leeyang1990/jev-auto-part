@@ -1,9 +1,10 @@
 import {
   CONTROL_HORIZON_S, FINE_CONTROL_HORIZON_S, MICRO_CONTROL_HORIZON_S,
-  FINE_SPEED_OPTIONS, PARK_TOLERANCE, RECOVERY_CONTROL_HORIZON_S, SPEED_OPTIONS, STEERING_OPTIONS, TRAJECTORY,
+  FINE_SPEED_OPTIONS, RECOVERY_CONTROL_HORIZON_S, SPEED_OPTIONS, STEERING_OPTIONS, TRAJECTORY,
 } from "./config.js";
 import { angleError, distance } from "./math.js";
 import { navigationMeasurement } from "./navigation.js";
+import { isParked, parkingAssessment } from "../public/parking-goal.js";
 import { simulateTrajectory } from "./kinematics.js";
 
 // Build one-step, model-selectable controls. Both engines receive this exact
@@ -12,15 +13,15 @@ export function createControlCandidates({ pose, target, world, navigation, recov
   const rollouts = controlsFor(pose, target, navigation, recovery).map((segment) => {
     const candidate = simulate("control", pose, target, [segment], world);
     const measurement = navigationMeasurement(navigation, candidate.pose);
-    return { ...candidate, searchCost: searchCost(candidate, measurement, navigation) };
+    candidate.parkingToleranceRatio = parkingAssessment(candidate.pose, target).toleranceRatio;
+    return { ...candidate, parkedAfter: isParked(candidate.pose, target), searchCost: searchCost(candidate, measurement, navigation) };
   });
   const candidates = Object.fromEntries(diverseCandidates(rollouts, TRAJECTORY.candidateLimit, recovery).map((candidate, index) => {
     const action = `control_${String(index).padStart(2, "0")}`;
     candidate.action = action;
     return [action, candidate];
   }));
-  const parked = distance(pose, target) <= PARK_TOLERANCE.distanceM
-    && angleError(pose.heading, target.heading) <= PARK_TOLERANCE.headingDeg;
+  const parked = isParked(pose, target);
   candidates.stop = {
     action: "stop", label: "Stop and hold position", pose: { ...pose }, path: [{ ...pose }],
     distance: distance(pose, target), angleError: angleError(pose.heading, target.heading),
@@ -49,8 +50,7 @@ function controlsFor(pose, target, navigation, recovery) {
 function diverseCandidates(candidates, limit, recovery) {
   const ranked = candidates.slice().sort((a, b) => a.searchCost - b.searchCost);
   const picked = [], keys = new Set();
-  const terminal = ranked.find((candidate) => candidate.distance <= PARK_TOLERANCE.distanceM
-    && candidate.angleError <= PARK_TOLERANCE.headingDeg);
+  const terminal = ranked.find((candidate) => candidate.parkedAfter);
   if (terminal) add(terminal);
   for (const direction of [-1, 1]) {
     const directional = ranked.filter((item) => item.control.direction === direction);
@@ -77,7 +77,7 @@ function diverseCandidates(candidates, limit, recovery) {
 
 function searchCost(candidate, measurement, navigation) {
   const objective = navigation?.finalStage
-    ? candidate.distance + candidate.angleError * 0.025
+    ? candidate.parkingToleranceRatio
     : measurement.remainingM + Math.abs(measurement.lateralErrorM) * 0.7 + measurement.headingErrorDeg * 0.012;
   const unsafe = candidate.collision ? 1000 : Math.max(0, 0.2 - candidate.clearance) * 8;
   return objective + unsafe;
@@ -93,7 +93,7 @@ function controlDurations(finalStage, remaining, targetSpeed, recovery) {
       Math.max(CONTROL_HORIZON_S, minimumDuration),
     ])];
   }
-  const desiredTravelM = Math.min(0.32, Math.max(0.08, remaining - PARK_TOLERANCE.distanceM * 0.45));
+  const desiredTravelM = Math.min(0.32, Math.max(0.08, remaining - 0.126));
   const adaptive = Math.max(MICRO_CONTROL_HORIZON_S, Math.min(CONTROL_HORIZON_S, desiredTravelM / targetSpeed));
   return targetSpeed <= Math.max(...FINE_SPEED_OPTIONS)
     ? [...new Set([MICRO_CONTROL_HORIZON_S, FINE_CONTROL_HORIZON_S, adaptive, CONTROL_HORIZON_S])]

@@ -9,8 +9,9 @@
 // Nothing about the information changes. Same perception, same candidate set,
 // same tolerances, same safety margin. Only the representation differs.
 
+import { PARKING_BAY, PARKING_RULE } from "./public/parking-goal.js";
 import { distance, angleError, round } from "./parking/math.js";
-import { decisionCandidates, isLegal, planString } from "./parking/policy.js";
+import { decisionCandidates, isParked, isLegal, planString } from "./parking/policy.js";
 
 function metres(value) { return round(value).toFixed(2) + " m"; }
 function degrees(value) { return round(value).toFixed(1) + " deg"; }
@@ -62,7 +63,7 @@ function describeOption(ordinal, candidate, analysis, pose, target, finalStage) 
       + " longitudinal and " + metres(candidate.targetLateralError) + " lateral");
     parts.push("changes target distance by " + metres(candidate.distance - distance(pose, target)));
     parts.push("changes target heading error by " + degrees(candidate.angleError - angleError(pose.heading, target.heading)));
-    if (candidate.parkedAfter) parts.push("FINISHES THE TASK: inside both parking tolerances");
+    if (candidate.parkedAfter) parts.push("FINISHES THE TASK: inside body-containment and heading requirements");
     else if (Number.isFinite(candidate.parkingToleranceRatio)) parts.push("worst normalized parking error is " + round(candidate.parkingToleranceRatio).toFixed(2) + " times its allowed tolerance");
   }
   const requested = analysis.recentRequestCounts?.[candidate.action] || 0;
@@ -104,7 +105,7 @@ function describeOption(ordinal, candidate, analysis, pose, target, finalStage) 
 export function semanticBriefing({ scenario, task, pose, target, navigation, analysis, recovery, candidates, environment }) {
   // Use the same safety-admitted choice set as Jev. Unsafe exploratory paths
   // are still rendered in the UI, but neither engine may request them.
-  const ordered = Object.entries(decisionCandidates(candidates, recovery));
+  const ordered = Object.entries(isParked(pose, target) ? {} : decisionCandidates(candidates, recovery));
   const order = ordered.map(([id]) => id);
   const bayside = distance(pose, target);
 
@@ -113,7 +114,7 @@ export function semanticBriefing({ scenario, task, pose, target, navigation, ana
   lines.push("");
   lines.push("THE TASK");
   lines.push(task || "Park in the centre bay between two parked vehicles.");
-  lines.push("The bay you must end up in is centred at x=" + round(target.x).toFixed(2) + ", y=" + round(target.y).toFixed(2) + " with its heading at " + degrees(target.heading) + ". Success means coming to rest within " + metres(0.28) + " of that centre and within 7 degrees of that heading.");
+  lines.push("The bay you must end up in is centred at x=" + round(target.x).toFixed(2) + ", y=" + round(target.y).toFixed(2) + " with its heading at " + degrees(target.heading) + ". Success means holding the entire vehicle inside the " + metres(PARKING_BAY.width) + " wide by " + metres(PARKING_BAY.length) + " long bay, with at least " + metres(PARKING_RULE.edgeMarginM) + " from the inner edges of its " + metres(PARKING_BAY.lineWidth) + " thick painted lines and heading error at most " + degrees(PARKING_RULE.headingDeg) + ". Exact centering is not required; stop adjusting once these conditions hold.");
   if (navigation) {
     if (navigation.finalStage) {
       lines.push("Current navigation stage " + (navigation.stageIndex + 1) + " of " + navigation.stageCount + ": " + navigation.label + ". This is the final parking stage.");

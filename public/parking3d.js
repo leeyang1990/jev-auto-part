@@ -1,3 +1,4 @@
+import { PARKING_BAY } from "./parking-goal.js";
 import * as THREE from "/vendor/three/three.module.js";
 
 export function createParkingScene(canvas, { accent }) {
@@ -625,11 +626,12 @@ function buildLot(group, accent) {
 
   const targetMaterial = new THREE.MeshBasicMaterial({ color: accent, transparent: true, opacity: 0.78 });
   const targetFill = new THREE.MeshBasicMaterial({ color: accent, transparent: true, opacity: 0.055, depthWrite: false });
-  addBox(group, [0, 0.016, -2.45], [2.02, 0.012, 2.12], targetFill);
-  addBox(group, [-1.02, 0.026, -2.45], [0.055, 0.018, 2.2], targetMaterial);
-  addBox(group, [1.02, 0.026, -2.45], [0.055, 0.018, 2.2], targetMaterial);
-  addBox(group, [0, 0.026, -3.55], [2.08, 0.018, 0.055], targetMaterial);
-  addBox(group, [0, 0.026, -1.35], [2.08, 0.018, 0.055], targetMaterial);
+  const { width, length, lineWidth } = PARKING_BAY;
+  addBox(group, [0, 0.016, -2.45], [width - lineWidth, 0.012, length - lineWidth], targetFill);
+  for (const sign of [-1, 1]) {
+    addBox(group, [sign * width / 2, 0.026, -2.45], [lineWidth, 0.018, length], targetMaterial);
+    addBox(group, [0, 0.026, -2.45 + sign * length / 2], [width + lineWidth, 0.018, lineWidth], targetMaterial);
+  }
 
   const tanCar = createCar(0xd0b793, false);
   tanCar.position.set(-2.05, 0.18, -2.45);

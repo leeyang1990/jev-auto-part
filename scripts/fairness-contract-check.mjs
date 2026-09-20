@@ -5,7 +5,7 @@ import { prepareRequest } from "../parking/jev-request.js";
 import { stopAvailability } from "../parking/policy.js";
 
 const store = new ParkingSessionStore();
-const pose = { x: 0.42, y: -2.35, heading: 88 };
+const pose = { x: 0.42, y: -2.05, heading: 88 };
 const target = { x: 0, y: -2.45, heading: 90 };
 const history = [];
 
@@ -39,6 +39,7 @@ const briefing = semanticBriefing({
 });
 assert.deepEqual(Object.keys(prepared.eligible), briefing.order,
   "Jev and LLM must receive the same admitted IDs in the same order");
+assert.ok(briefing.order.length > 0, "fairness check must exercise moving choices");
 for (const item of Object.values(prepared.eligible)) {
   assert.equal(item.path, item.horizonPath,
     "display, collision checking and execution must use the same trajectory object");

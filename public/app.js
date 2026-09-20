@@ -1,3 +1,4 @@
+import { isParked } from "./parking-goal.js";
 import { createParkingScene } from "./parking3d.js";
 import { scenarios } from "../scenarios.js";
 import { DEFAULT_LANGUAGE, LANGUAGE_STORAGE_KEY, normalizeLanguage, translate } from "./i18n.js";
@@ -80,6 +81,7 @@ function startEngine(key) {
   engine.runToken += 1;
   engine.startedAt = performance.now() - engine.elapsedMs;
   engine.error = null;
+  if (isParked(engine.pose, engine.target)) { finishEngine(key, "parked"); return; }
   setStatus(key, "thinking", "status.move", { move: engine.moves + 1 });
   updateRunButtons();
   ensureElapsedTimer();
@@ -616,6 +618,5 @@ function anyEngineRunning() { return Object.values(engines).some((engine) => eng
 function displayName(key) { return key === "jev" ? "Jev" : "LLM"; }
 function distance(a, b) { return Math.hypot(b.x - a.x, b.y - a.y); }
 function angleError(a, b) { let value = (b - a) % 360; if (value > 180) value -= 360; if (value < -180) value += 360; return Math.abs(value); }
-function isParked(pose, target) { return distance(pose, target) <= 0.28 && angleError(pose.heading, target.heading) <= 7; }
 function escapeHtml(value) { const node = document.createElement("span"); node.textContent = String(value); return node.innerHTML; }
 function showToast(message) { clearTimeout(toastTimer); toast.textContent = message; toast.classList.add("visible"); toastTimer = setTimeout(() => toast.classList.remove("visible"), 5000); }

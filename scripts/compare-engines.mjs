@@ -1,3 +1,4 @@
+import { isParked as parked } from "../public/parking-goal.js";
 // Runs the same scenario through both engines and prints the gap between them.
 // The engines receive identical perception, identical candidates and identical
 // tolerances; only the interface differs, and that difference is the experiment.
@@ -18,7 +19,6 @@ const scenarios = {
 
 function distance(a, b) { return Math.hypot(b.x - a.x, b.y - a.y); }
 function angleError(a, b) { let value = (b - a) % 360; if (value > 180) value -= 360; if (value < -180) value += 360; return Math.abs(value); }
-function parked(a, b) { return distance(a, b) <= 0.28 && angleError(a.heading, b.heading) <= 7; }
 function round(value) { return Math.round(Number(value) * 1000) / 1000; }
 
 async function run(engine, scenario) {

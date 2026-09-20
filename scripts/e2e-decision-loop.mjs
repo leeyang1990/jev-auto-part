@@ -1,3 +1,4 @@
+import { isParked as isParked } from "../public/parking-goal.js";
 const BASE_URL = process.env.TEST_BASE_URL || "http://127.0.0.1:4173";
 const MAX_MOVES = Number(process.env.TEST_MAX_MOVES || 30);
 const ENGINE = process.argv[2] || "llm";
@@ -162,5 +163,4 @@ process.exitCode = 2;
 
 function distance(a, b) { return Math.hypot(b.x - a.x, b.y - a.y); }
 function angleError(a, b) { let value = (b - a) % 360; if (value > 180) value -= 360; if (value < -180) value += 360; return Math.abs(value); }
-function isParked(a, b) { return distance(a, b) <= 0.28 && angleError(a.heading, b.heading) <= 7; }
 function round(value) { return Math.round(Number(value) * 1000) / 1000; }

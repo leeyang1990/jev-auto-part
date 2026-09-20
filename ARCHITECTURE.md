@@ -26,7 +26,7 @@ The honesty boundary is unchanged: the same generator, perceived world, candidat
 
 Every selectable candidate contains one immediate control. The shared generator
 offers steering, speed, gear, and duration choices to both engines. A terminal
-rollout that satisfies both parking tolerances is preserved in the bounded table
+rollout that satisfies body-containment and heading requirements is preserved in the bounded table
 so completion remains an explicit model-selectable outcome.
 
 Loop recovery follows the same boundary. The session keeps a short memory of
@@ -42,3 +42,11 @@ rollouts that improve the recovery episode's measured objective. When safe
 terminal rollouts exist during recovery, it exposes every terminal choice and
 withholds non-terminal wandering. These are common constraint filters over
 measured outcomes; neither rule picks a winner or depends on engine identity.
+
+Parking completion is defined once in `public/parking-goal.js`, shared by the
+browser, server, model facts, recovery objective and comparison tests. The
+vehicle rectangle must clear every inner edge of the rendered bay lines by
+5 cm and be within 12 degrees of the required heading. Exact centering is not
+a completion requirement. The bay renderer uses the same geometry constants.
+At a qualifying control endpoint the browser finishes the animation and holds;
+an already parked request is resolved as a hold without another model call.

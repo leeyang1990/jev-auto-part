@@ -1,10 +1,8 @@
-import { CONTROL_HORIZON_S, PARK_TOLERANCE, SAFETY_MARGIN, TRAJECTORY } from "./config.js";
+import { CONTROL_HORIZON_S, SAFETY_MARGIN, TRAJECTORY } from "./config.js";
 import { angleError, distance, round } from "./math.js";
 
-export function isParked(pose, target) {
-  return distance(pose, target) <= PARK_TOLERANCE.distanceM
-    && angleError(pose.heading, target.heading) <= PARK_TOLERANCE.headingDeg;
-}
+import { isParked, parkingAssessment } from "../public/parking-goal.js";
+export { isParked };
 
 export function movingCandidates(candidates) {
   return Object.fromEntries(Object.entries(candidates)
@@ -89,15 +87,11 @@ function signedSteer(steerDeg) {
   return value > 0 ? "+" + value : String(value);
 }
 
-export function analyzeHistory(history, finalStage = false) {
+export function analyzeHistory(history, finalStage = false, target = null) {
   const entries = history.slice(-10);
   const distances = entries.map((item) => Number(item.navigationDistance ?? item.distance)).filter(Number.isFinite);
-  const toleranceRatios = entries.map((item) => {
-    const distanceM = Number(item.distance), headingDeg = Number(item.angleError);
-    return Number.isFinite(distanceM) && Number.isFinite(headingDeg)
-      ? Math.max(distanceM / PARK_TOLERANCE.distanceM, headingDeg / PARK_TOLERANCE.headingDeg)
-      : null;
-  }).filter(Number.isFinite);
+  const toleranceRatios = entries.map((item) => target && validPose(item.pose)
+    ? parkingAssessment(item.pose, target).toleranceRatio : NaN).filter(Number.isFinite);
   const progressValues = finalStage && toleranceRatios.length === entries.length ? toleranceRatios : distances;
   const gears = entries.map((item) => item.control?.gear).filter((gear) => gear === "forward" || gear === "reverse");
   let gearChanges = 0;

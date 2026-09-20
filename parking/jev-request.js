@@ -1,5 +1,6 @@
-import { CONTROL_HORIZON_S, LOT_BOUNDS, OBSTACLES, PARK_TOLERANCE, SAFETY_MARGIN, VEHICLE } from "./config.js";
+import { CONTROL_HORIZON_S, LOT_BOUNDS, OBSTACLES, SAFETY_MARGIN, VEHICLE } from "./config.js";
 import { angleError, clamp, distance, round, roundPose } from "./math.js";
+import { PARKING_BAY, PARKING_RULE } from "../public/parking-goal.js";
 import { scenarioTasks } from "../scenarios.js";
 import { decisionCandidates, isParked, planString } from "./policy.js";
 
@@ -26,7 +27,7 @@ export function prepareRequest({ scenario, pose, target, navigation, history, an
   // Match JevPilot's safety boundary: all paths remain visible in the operator
   // overlay, while only collision-free controls enter the model's choice set.
   // This layer does not score, rank, or select among the admitted controls.
-  const eligible = decisionCandidates(candidates, recovery);
+  const eligible = isParked(pose, target) ? {} : decisionCandidates(candidates, recovery);
   const aliases = Object.fromEntries(Object.keys(eligible).map((id, index) => [`v${index}`, id]));
   const vectors = Object.fromEntries(Object.entries(aliases).map(([alias, original]) => [alias, candidates[original]]));
 
@@ -105,20 +106,21 @@ export function prepareRequest({ scenario, pose, target, navigation, history, an
     task: scenarioTasks[scenario] || scenarioTasks["offset-bay"],
     policy: [
       "Park the car inside the target bay without touching the two parked vehicles or the lot boundary.",
+      "Completion requires the entire vehicle body inside the bay paint inner edges with the specified edge margin and heading tolerance. Exact centering is not required. Once parked_now is true, hold position; do not improve centering further.",
       "Choose one immediate control. Gear, steering angle, target speed and duration are all part of your choice.",
       "Every listed control was rolled out with the real vehicle body, so the numbers are measurements, not estimates.",
       "plan contains F or R gear, steering angle, target speed in m/s and duration.",
       "The environment below was measured by your own sensors, not handed to you. Occupancy is what has been mapped; unknown_fraction is how much of that command runs through space you have never observed, and predicted_conflict names an object that is forecast to reach that path, with conflict_in_s giving when.",
       "The displayed prediction line is the exact collision-tested path that will execute before the next decision.",
       "Every command in the choice table passed the same collision and lot-boundary safety admission. Other exploratory rollouts may remain visible to the operator but cannot be executed.",
-      "Navigation supplies a directed route corridor and measures it; it never chooses a control. Before the final stage, prioritize positive route_progress_m, reduce route_remaining_m, and keep route_error_m and heading_error_deg controlled. Candidate target-distance scores are intentionally deferred until the route crosses its entry gate. In the final stage, parked_after_command=true is the best outcome because it satisfies both parking tolerances at once. If none is true, minimize parking_tolerance_ratio rather than optimizing distance at the expense of heading.",
+      "Navigation supplies a directed route corridor and measures it; it never chooses a control. Before the final stage, prioritize positive route_progress_m, reduce route_remaining_m, and keep route_error_m and heading_error_deg controlled. Candidate target-distance scores are intentionally deferred until the route crosses its entry gate. In the final stage, parked_after_command=true is the best outcome because it satisfies body-containment and heading requirements at once. If none is true, minimize parking_tolerance_ratio rather than optimizing distance at the expense of heading.",
       "Use progress_analysis and recent_decisions. If recovery.active is true you have been repeating or stalling: change the control instead of repeating a failed command. A state loop means the car returned to the same position and heading, even if the command names differed.",
       "During recovery, controls that return to a recently visited physical state, including states visited earlier in the current recovery episode, are temporarily removed from both engines' shared choice set. This is a short-term tabu constraint, not a selected escape action: you still choose freely among all remaining safe, novel controls.",
       "Reverse is allowed and is often required to open up the angle. Choose stop only when parked_now is true.",
     ].join(" "),
     scenario,
     ego: { pose: roundPose(pose), geometry: VEHICLE },
-    target: { pose: roundPose(target), tolerance: { distance_m: PARK_TOLERANCE.distanceM, heading_deg: PARK_TOLERANCE.headingDeg } },
+    target: { pose: roundPose(target), bay: PARKING_BAY, completion: PARKING_RULE },
     navigation: navigation ? {
       stage: navigation.stageId, stage_number: navigation.stageIndex + 1, stages_total: navigation.stageCount,
       instruction: navigation.label, final_stage: navigation.finalStage,
