@@ -6,6 +6,10 @@ A Three.js 3D parking demo comparing Jev's structured choices with a general-pur
 
 Both engines use the same candidate generation, vehicle motion, safety checks and completion criteria. The current loop uses **one control per decision**: the model selects a gear, steering angle, target speed and duration, then continues deciding after execution.
 
+![Parking Lab English UI: side-by-side Jev and LLM 3D parking comparison](docs/images/overview-en.jpg)
+
+*Actual interface: the offset approach scenario before starting a run.*
+
 ## Quick start
 
 Requirements: Node.js 20+, npm, a WebGL-capable browser, Jev access and an LLM endpoint compatible with OpenAI Chat Completions.
@@ -44,6 +48,10 @@ Open [http://127.0.0.1:4173](http://127.0.0.1:4173). Restart the server after ch
 - Select **Custom start**, drag the car to move it and drag the blue direction handle to rotate it. Both engines receive the same starting pose.
 - Switch between Chinese and English at the top. Raw model explanations may remain in English.
 - Inspect elapsed time, average decision latency, decision count, distance, gear changes, minimum clearance, safety refusals and oscillations.
+
+![Custom start editor: drag the car to move and the blue handle to rotate](docs/images/custom-en.jpg)
+
+*Custom scenario editor. Both engines use the same starting position and heading.*
 
 Prediction lines use blue for forward, purple for reverse, amber for predicted collisions, orange for rejected model choices and bright blue for the approved selection. Some exploratory paths remain visible without being offered to the model.
 
